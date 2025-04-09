@@ -2,7 +2,7 @@ import streamlit as st
 import mysql.connector
 from mysql.connector import Error
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -29,6 +29,15 @@ def create_connection():
         st.error(f"Erro ao conectar ao MySQL: {e}")
     return connection
 
+# --- Função para formatar o status ativo com ícones ---
+def format_active_status(row):
+    if row["active"] == "No":
+        return "🔴 No"
+    elif row["active"] == "Yes" and row["updated_at_raw"] < datetime.now() - timedelta(hours=1):
+        return "🟡 Yes (Check)"
+    else:
+        return "🟢 Yes"
+
 # --- Consulta os dados da tabela miner_status ---
 conn = create_connection()
 if conn is None:
@@ -36,16 +45,19 @@ if conn is None:
 
 query = "SELECT * FROM vr2miner.miner_status ORDER BY location, name"
 df = pd.read_sql(query, conn)
-original_df = df
 conn.close()
 
-# --- Adiciona métricas globais ---
-df['preset_valor'] = df['preset'].apply(lambda x: float(re.findall(r'\d+(?:\.\d+)?', x)[0]) if isinstance(x, str) and re.findall(r'\d+(?:\.\d+)?', x) else 0)
+# --- Processamento de dados ---
+df["updated_at_raw"] = pd.to_datetime(df["updated_at"])  # usado para lógica
+df["updated_at"] = df["updated_at_raw"].dt.strftime('%d/%m/%Y %H:%M:%S')  # exibido formatado
 
-ativas = df[df['active'] == 'Yes'].shape[0]
-inativas = df[df['active'] == 'No'].shape[0]
+df['preset_valor'] = df['preset'].apply(lambda x: float(re.findall(r'\d+(?:\.\d+)?', x)[0]) if isinstance(x, str) and re.findall(r'\d+(?:\.\d+)?', x) else 0)
+df["active"] = df.apply(format_active_status, axis=1)
+
+# --- Métricas globais ---
+ativas = df[df["active"].str.contains("🟢")].shape[0]
+inativas = df[df["active"].str.contains("🔴")].shape[0]
 total_th = df['preset_valor'].sum()
-df['updated_at'] = pd.to_datetime(df['updated_at']).dt.strftime('%d/%m/%Y %H:%M:%S')
 
 col1, col2, col3 = st.columns(3)
 col1.metric("🔋 Active Miners", ativas)
@@ -57,17 +69,15 @@ st.divider()
 if df.empty:
     st.write("No data!")
 else:
-    
-    # Agrupa o dataframe por 'location' e, em cada grupo, remove as colunas "id" e "location"
     groups = {}
     for loc, group in df.groupby("location"):
-        group_display = group.drop(columns=["id", "location", "preset_valor"]).reset_index(drop=True)
+        group_display = group.drop(columns=["id", "location", "preset_valor", "updated_at_raw"]).reset_index(drop=True)
         group_display.index = group_display.index + 1  # inicia o índice em 1
         groups[loc] = group_display
 
-    # Exibe cada grupo em um expander separado
     for loc, group_df in groups.items():
         with st.expander(f"📍 {loc}", expanded=True):
             st.dataframe(group_df)
 
-#python -m streamlit run D:\Miners\dashboard.py
+# Comando para rodar:
+# python -m streamlit run D:\Miners\vr2-dashboard\dashboard.py
