@@ -3,4 +3,3 @@ mysql-connector-python
 python-dotenv
 pandas
 requests
-re
