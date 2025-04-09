@@ -43,6 +43,16 @@ def format_active_status(row):
         return "🟡 Yes (Check)"
     else:
         return "🟢 Yes"
+    
+def format_temperature(temp):
+    if temp == 0:
+        return '-'
+    elif temp < 75:
+        return f"❄️ {temp}°C"
+    elif temp >= 78:
+        return f"🔥 {temp}°C"
+    else:
+        return f"🌡️ {temp}°C"
 
 # --- Consulta os dados da tabela miner_status ---
 conn = create_connection()
@@ -59,6 +69,7 @@ df["updated_at"] = df["updated_at_raw"].dt.strftime('%d/%m/%Y %H:%M:%S')  # exib
 
 df['preset_valor'] = df['preset'].apply(lambda x: float(re.findall(r'\d+(?:\.\d+)?', x)[0]) if isinstance(x, str) and re.findall(r'\d+(?:\.\d+)?', x) else 0)
 df["active"] = df.apply(format_active_status, axis=1)
+df["temperature"] = df["temperature"].apply(format_temperature)
 
 # --- Métricas globais ---
 ativas = df[df["active"].str.contains("🟢")].shape[0]
