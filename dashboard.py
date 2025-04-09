@@ -7,6 +7,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 import re
+import pytz
 
 # Carrega as variáveis de ambiente
 load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
@@ -33,7 +34,7 @@ def create_connection():
 def format_active_status(row):
     if row["active"] == "No":
         return "🔴 No"
-    elif row["active"] == "Yes" and row["updated_at_raw"] < datetime.now() - timedelta(hours=1):
+    elif row["active"] == "Yes" and row["updated_at_raw"] < datetime.now(pytz.timezone("America/Sao_Paulo")) - timedelta(hours=1):
         return "🟡 Yes (Check)"
     else:
         return "🟢 Yes"
