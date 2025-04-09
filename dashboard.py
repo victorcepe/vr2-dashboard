@@ -43,7 +43,7 @@ conn.close()
 df['preset_valor'] = df['preset'].apply(lambda x: float(re.findall(r'\d+(?:\.\d+)?', x)[0]) if isinstance(x, str) and re.findall(r'\d+(?:\.\d+)?', x) else 0)
 
 ativas = df[df['active'] == 'Yes'].shape[0]
-inativas = df[df['active'] != 'Yes'].shape[0]
+inativas = df[df['active'] == 'No'].shape[0]
 total_th = df['preset_valor'].sum()
 df['updated_at'] = pd.to_datetime(df['updated_at']).dt.strftime('%d/%m/%Y %H:%M:%S')
 
