@@ -8,9 +8,14 @@ import os
 from dotenv import load_dotenv
 import re
 import pytz
+from pytz import timezone
 
 # Carrega as variáveis de ambiente
 load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
+
+# Local Timezone
+tz = timezone("America/Sao_Paulo")
+now = datetime.now(tz)
 
 # --- Configurações iniciais do Streamlit ---
 st.set_page_config(page_title="VR2 Miners Dashboard", layout="wide")
@@ -34,7 +39,7 @@ def create_connection():
 def format_active_status(row):
     if row["active"] == "No":
         return "🔴 No"
-    elif row["active"] == "Yes" and row["updated_at_raw"] < datetime.now(pytz.timezone("America/Sao_Paulo")) - timedelta(hours=1):
+    elif row["active"] == "Yes" and pd.to_datetime(row["updated_at"]).tz_localize(tz) < now - timedelta(hours=1):
         return "🟡 Yes (Check)"
     else:
         return "🟢 Yes"
