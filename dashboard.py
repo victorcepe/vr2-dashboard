@@ -48,14 +48,14 @@ total_th = df['preset_valor'].sum()
 df['updated_at'] = pd.to_datetime(df['updated_at']).dt.strftime('%d/%m/%Y %H:%M:%S')
 
 col1, col2, col3 = st.columns(3)
-col1.metric("🔋 Miners Ativas", ativas)
-col2.metric("🔌 Miners Inativas", inativas)
-col3.metric("💪 Soma TH (preset)", f"{total_th:.2f} TH")
+col1.metric("🔋 Active Miners", ativas)
+col2.metric("🔌 Inactive Miners", inativas)
+col3.metric("💪 TH Sum (preset)", f"{total_th:.2f} TH")
 st.divider()
 
 # --- Exibe os dados agrupados por localização ---
 if df.empty:
-    st.write("Nenhum dado para exibir!")
+    st.write("No data!")
 else:
     
     # Agrupa o dataframe por 'location' e, em cada grupo, remove as colunas "id" e "location"
