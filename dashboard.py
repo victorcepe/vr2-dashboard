@@ -8,14 +8,9 @@ import os
 from dotenv import load_dotenv
 import re
 import pytz
-from pytz import timezone
 
 # Carrega as variáveis de ambiente
 load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
-
-# Local Timezone
-tz = timezone("America/Sao_Paulo")
-now = datetime.now(tz)
 
 # --- Configurações iniciais do Streamlit ---
 st.set_page_config(page_title="VR2 Miners Dashboard", layout="wide")
@@ -37,13 +32,22 @@ def create_connection():
 
 # --- Função para formatar o status ativo com ícones ---
 def format_active_status(row):
+    now = datetime.now(pytz.timezone("America/Sao_Paulo"))
+    updated_at = row["updated_at_raw"]
+
+    if updated_at.tzinfo is None:
+        updated_at = updated_at.tz_localize("UTC").astimezone(pytz.timezone("America/Sao_Paulo"))
+    else:
+        updated_at = updated_at.astimezone(pytz.timezone("America/Sao_Paulo"))
+
     if row["active"] == "No":
         return "🔴 No"
-    elif row["active"] == "Yes" and (pd.to_datetime(row["updated_at"]).tz_localize(tz) < now - timedelta(hours=1) or row["status"] != "minning"):
+    elif (updated_at < now - timedelta(hours=1)) or (row["active"] == "Yes" and row["status"] != "mining"):
         return "🟡 Yes (Check)"
     else:
         return "🟢 Yes"
-    
+
+# --- Função para formatar a temperatura ---
 def format_temperature(temp):
     if temp == 0:
         return '-'
@@ -64,16 +68,21 @@ df = pd.read_sql(query, conn)
 conn.close()
 
 # --- Processamento de dados ---
-df["updated_at_raw"] = pd.to_datetime(df["updated_at"])  # usado para lógica
-df["updated_at"] = df["updated_at_raw"].dt.strftime('%d/%m/%Y %H:%M:%S')  # exibido formatado
+# Converte com timezone direto
+df["updated_at_raw"] = pd.to_datetime(df["updated_at"]).dt.tz_localize("America/Sao_Paulo")
+df["updated_at"] = df["updated_at_raw"].dt.strftime('%d/%m/%Y %H:%M:%S')  # só para exibição
 
+# Lógica de presets e temperatura
 df['preset_valor'] = df['preset'].apply(lambda x: float(re.findall(r'\d+(?:\.\d+)?', x)[0]) if isinstance(x, str) and re.findall(r'\d+(?:\.\d+)?', x) else 0)
 df["active"] = df.apply(format_active_status, axis=1)
 df["temperature"] = df["temperature"].apply(format_temperature)
 
 # --- Métricas globais ---
-ativas = df[df["active"].str.contains("🟢")].shape[0]
-inativas = df[df["active"].str.contains("🔴")].shape[0]
+mineradores_ativos = df["active"].str.contains("🟢|🟡")
+mineradores_inativos = df["active"].str.contains("🔴")
+
+ativas = df[mineradores_ativos].shape[0]
+inativas = df[mineradores_inativos].shape[0]
 total_th = df['preset_valor'].sum()
 
 col1, col2, col3 = st.columns(3)
