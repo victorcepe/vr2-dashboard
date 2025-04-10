@@ -39,7 +39,7 @@ def create_connection():
 def format_active_status(row):
     if row["active"] == "No":
         return "🔴 No"
-    elif row["active"] == "Yes" and pd.to_datetime(row["updated_at"]).tz_localize(tz) < now - timedelta(hours=1):
+    elif row["active"] == "Yes" and (pd.to_datetime(row["updated_at"]).tz_localize(tz) < now - timedelta(hours=1) or row["status"] != "minning"):
         return "🟡 Yes (Check)"
     else:
         return "🟢 Yes"
